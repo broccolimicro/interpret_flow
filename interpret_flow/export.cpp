@@ -20,7 +20,7 @@ parse_verilog::continuous export_continuous(arithmetic::ConstNetlist nets, clock
 	parse_verilog::continuous result;
 	result.valid = true;
 	result.force = force;
-	if (assign.expr.is_null()) {
+	if (assign.expr.isNull()) {
 		result.deassign = parse_verilog::export_variable_name(assign.net, nets);
 	} else {
 		result.assign = export_assign(nets, assign);
@@ -34,8 +34,8 @@ parse_verilog::declaration export_declaration(string type, string name, int msb,
 	result.input = input;
 	result.output = output;
 	if (msb > lsb) {
-		result.msb = parse_verilog::export_expression(arithmetic::value(msb));
-		result.lsb = parse_verilog::export_expression(arithmetic::value(lsb));
+		result.msb = parse_verilog::export_expression(arithmetic::Value::intOf(msb));
+		result.lsb = parse_verilog::export_expression(arithmetic::Value::intOf(lsb));
 	}
 	result.type = type;
 	result.name = name;
@@ -66,7 +66,7 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 	for (auto i = mod.blocks.begin(); i != mod.blocks.end(); i++) {
 		parse_verilog::if_statement *cond = new parse_verilog::if_statement();
 		cond->valid = true;
-		cond->condition.push_back(parse_verilog::export_expression(operand(mod.reset, operand::variable), mod));
+		cond->condition.push_back(parse_verilog::export_expression(Operand::varOf(mod.reset), mod));
 		parse_verilog::block_statement reset;
 		reset.valid = true;
 		for (auto j = i->reset.begin(); j != i->reset.end(); j++) {
@@ -76,7 +76,7 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 
 		bool done = false;
 		for (auto j = i->rules.begin(); j != i->rules.end() and not done; j++) {
-			if (not j->guard.is_valid()) {
+			if (not j->guard.isValid()) {
 				cond->condition.push_back(parse_verilog::export_expression(j->guard, mod));
 			}
 
@@ -91,7 +91,7 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 			}
 			cond->body.push_back(body);
 
-			if (j->guard.is_valid()) {
+			if (j->guard.isValid()) {
 				if (std::next(j) != i->rules.end()) {
 					printf("warning: ineffective conditions found in stateful assignment\n");
 				}
