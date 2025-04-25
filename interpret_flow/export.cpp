@@ -7,6 +7,8 @@
 
 #include <interpret_arithmetic/export_verilog.h>
 
+namespace flow {
+
 parse_verilog::assignment_statement export_assign(arithmetic::ConstNetlist nets, clocked::Assign assign) {
 	parse_verilog::assignment_statement result;
 	result.valid = true;
@@ -113,3 +115,4 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 	return result;
 }
 
+}

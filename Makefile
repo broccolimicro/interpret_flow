@@ -1,6 +1,6 @@
 NAME          = interpret_flow
-DEPEND        = flow interpret_arithmetic arithmetic parse_expression parse_verilog interpret_ucs parse_ucs parse ucs common
-TEST_DEPEND   = flow interpret_arithmetic arithmetic parse_expression parse_verilog interpret_ucs parse_ucs parse ucs common
+DEPEND        = flow interpret_arithmetic arithmetic parse_expression parse_verilog parse_ucs parse common
+TEST_DEPEND   = flow interpret_arithmetic arithmetic parse_expression parse_verilog parse_ucs parse common
 
 COVERAGE ?= 0
 
