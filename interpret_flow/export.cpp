@@ -9,28 +9,28 @@
 
 namespace flow {
 
-parse_verilog::assignment_statement export_assign(arithmetic::ConstNetlist nets, clocked::Assign assign) {
+parse_verilog::assignment_statement export_assign(ucs::ConstNetlist nets, clocked::Assign assign) {
 	parse_verilog::assignment_statement result;
 	result.valid = true;
-	result.name = parse_verilog::export_variable_name(assign.net, nets);
+	result.name = nets.netAt(assign.net);
 	result.blocking = assign.blocking;
 	result.expr = parse_verilog::export_expression(assign.expr, nets);
 	return result;
 }
 
-parse_verilog::continuous export_continuous(arithmetic::ConstNetlist nets, clocked::Assign assign, bool force) {
+parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Assign assign, bool force) {
 	parse_verilog::continuous result;
 	result.valid = true;
 	result.force = force;
 	if (assign.expr.isNull()) {
-		result.deassign = parse_verilog::export_variable_name(assign.net, nets);
+		result.deassign = nets.netAt(assign.net);
 	} else {
 		result.assign = export_assign(nets, assign);
 	}
 	return result;
 }
 
-parse_verilog::declaration export_declaration(string type, string name, int msb, int lsb, bool input, bool output) {
+parse_verilog::declaration export_declaration(string type, ucs::Net name, int msb, int lsb, bool input, bool output) {
 	parse_verilog::declaration result;
 	result.valid = true;
 	result.input = input;
@@ -40,7 +40,7 @@ parse_verilog::declaration export_declaration(string type, string name, int msb,
 		result.lsb = parse_verilog::export_expression(arithmetic::Value::intOf(lsb));
 	}
 	result.type = type;
-	result.name = name;
+	result.name = name.to_string();
 	return result;
 }
 
