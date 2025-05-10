@@ -12,7 +12,7 @@ namespace flow {
 parse_verilog::assignment_statement export_assign(ucs::ConstNetlist nets, clocked::Assign assign) {
 	parse_verilog::assignment_statement result;
 	result.valid = true;
-	result.name = nets.netAt(assign.net);
+	result.name = ucs::Net(nets.netAt(assign.net));
 	result.blocking = assign.blocking;
 	result.expr = parse_verilog::export_expression(assign.expr, nets);
 	return result;
@@ -23,7 +23,7 @@ parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Ass
 	result.valid = true;
 	result.force = force;
 	if (assign.expr.isNull()) {
-		result.deassign = nets.netAt(assign.net);
+		result.deassign = ucs::Net(nets.netAt(assign.net));
 	} else {
 		result.assign = export_assign(nets, assign);
 	}
