@@ -44,6 +44,56 @@ parse_verilog::declaration export_declaration(string type, ucs::Net name, int ms
 	return result;
 }
 
+parse_verilog::block_statement export_block(const vector<clocked::Statement> &stmts, ucs::ConstNetlist nets) {
+	parse_verilog::block_statement body;
+	body.valid = true;
+	for (auto k = stmts.begin(); k != stmts.end(); k++) {
+		if (k->is(Statement::ASSIGN)) {
+			if (mod.nets[k->net].purpose != clocked::Net::REG) {
+				printf("error: found stateful assignments on wire '%s'\n", mod.nets[k->net].name.c_str());
+			}
+			body.sub.push_back(shared_ptr<parse::syntax>(new parse_verilog::assignment_statement(export_assign(mod, *k))));
+		} else if (k->is(Statement::IF) or k->is(Statement::ELIF)) {
+			parse_verilog::if_statement *cond = nullptr;
+			if (i->is(statement::IF)) {
+				cond = new parse_verilog::if_statement();
+				cond->valid = true;
+				body.sub.push_back(shared_ptr<parse::syntax>(cond));
+			} else {
+				if (not body.sub.back()->is_a<parse_verilog::if_statement>()) {
+					printf("error:%s:%d: else if expected preceding if statement\n", __FILE__, __LINE__);
+					continue;
+				}
+
+				cond = (parse_verilog::if_statement*)body.sub.back();
+			}
+
+			if (k->expr.isValid()) {
+				cond->condition.push_back(parse_verilog::export_expression(k->expr, nets));
+			}
+
+			cond->body.push_back(export_block(k->stmt, nets));
+		} else {
+			printf("error:%s:%d: unrecognized statement type %d\n", __FILE__, __LINE__, k->kind);
+			continue;
+		}
+	}
+
+	return body;
+}
+
+parse_verilog::trigger export_trigger(const clocked::Block &block, ucs::ConstNetlist nets) {
+	parse_verilog::trigger *always = new parse_verilog::trigger();
+	always->valid = true;
+	always->condition.valid = true;
+	always->condition.level = parse_verilog::expression::get_level("posedge");
+	always->condition.arguments.push_back(parse_verilog::export_expression(i->clk, mod));
+	always->condition.operations.push_back("posedge");
+	always->body.valid = true;
+	always->body.sub.push_back(shared_ptr<parse::syntax>(export_block(block.stmt, nets)));
+	return always;
+}
+
 parse_verilog::module_def export_module(const clocked::Module &mod) {
 	parse_verilog::module_def result;
 	result.valid = true;
@@ -61,55 +111,17 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 		}
 	}
 
-	for (auto i = mod.assign.begin(); i != mod.assign.end(); i++) {
-		result.items.push_back(shared_ptr<parse::syntax>(new parse_verilog::continuous(export_continuous(mod, *i))));
+	for (auto i = mod.stmt.begin(); i != mod.stmt.end(); i++) {
+		if (i->is(Statement::ASSIGN)) {
+			result.items.push_back(shared_ptr<parse::syntax>(new parse_verilog::continuous(export_continuous(mod, *i))));
+		} else {
+			internal(__FILE__, __LINE__, "sequential statements must be inside a block");
+			continue;
+		}
 	}
 
 	for (auto i = mod.blocks.begin(); i != mod.blocks.end(); i++) {
-		parse_verilog::if_statement *cond = new parse_verilog::if_statement();
-		cond->valid = true;
-		cond->condition.push_back(parse_verilog::export_expression(Operand::varOf(mod.reset), mod));
-		parse_verilog::block_statement reset;
-		reset.valid = true;
-		for (auto j = i->reset.begin(); j != i->reset.end(); j++) {
-			reset.sub.push_back(shared_ptr<parse::syntax>(new parse_verilog::assignment_statement(export_assign(mod, *j))));
-		}
-		cond->body.push_back(reset);
-
-		bool done = false;
-		for (auto j = i->rules.begin(); j != i->rules.end() and not done; j++) {
-			if (not j->guard.isValid()) {
-				cond->condition.push_back(parse_verilog::export_expression(j->guard, mod));
-			}
-
-			parse_verilog::block_statement body;
-			body.valid = true;
-			for (auto k = j->assign.begin(); k != j->assign.end(); k++) {
-				if (mod.nets[k->net].purpose != clocked::Net::REG) {
-					printf("error: found stateful assignments on wire '%s'\n", mod.nets[k->net].name.c_str());
-				}
-
-				body.sub.push_back(shared_ptr<parse::syntax>(new parse_verilog::assignment_statement(export_assign(mod, *k))));
-			}
-			cond->body.push_back(body);
-
-			if (j->guard.isValid()) {
-				if (std::next(j) != i->rules.end()) {
-					printf("warning: ineffective conditions found in stateful assignment\n");
-				}
-				done = true;
-			}
-		}
-
-		parse_verilog::trigger *always = new parse_verilog::trigger();
-		always->valid = true;
-		always->condition.valid = true;
-		always->condition.level = parse_verilog::expression::get_level("posedge");
-		always->condition.arguments.push_back(parse_verilog::export_expression(i->clk, mod));
-		always->condition.operations.push_back("posedge");
-		always->body.valid = true;
-		always->body.sub.push_back(shared_ptr<parse::syntax>(cond));
-		result.items.push_back(shared_ptr<parse::syntax>(always));	
+		result.items.push_back(shared_ptr<parse::syntax>(export_trigger(*i, mod)));	
 	}
 	
 	return result;
