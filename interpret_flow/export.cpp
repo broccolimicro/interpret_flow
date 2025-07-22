@@ -101,17 +101,84 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 			}
 		}
 
-		parse_verilog::trigger *always = new parse_verilog::trigger();
+		auto always = make_shared<parse_verilog::trigger>();
 		always->valid = true;
 		always->condition.valid = true;
 		always->condition.level = parse_verilog::expression::get_level("posedge");
 		always->condition.arguments.push_back(parse_verilog::export_expression(i->clk, mod));
 		always->condition.operations.push_back("posedge");
-		always->body.valid = true;
-		always->body.sub.push_back(shared_ptr<parse::syntax>(cond));
-		result.items.push_back(shared_ptr<parse::syntax>(always));	
+
+		// Create the main always block body
+		auto always_body = make_shared<parse_verilog::block_statement>();
+		always_body->valid = true;
+
+		auto always_if = make_shared<parse_verilog::if_statement>();
+		always_if->valid = true;
+
+		// Add trigger reset condition
+		always_if->condition.push_back(parse_verilog::export_expression(Operand::varOf(mod.reset), mod));
+
+		auto reset_body = make_shared<parse_verilog::block_statement>();
+		reset_body->valid = true;
+		for (const auto& reset_assign : i->reset) {
+			reset_body->sub.push_back(
+				make_shared<parse_verilog::assignment_statement>(
+					export_assign(mod, reset_assign)));
+		}
+		always_if->body.push_back(*reset_body);
+
+		// Add handshake for each branch
+		for (const auto& rule : i->rules) {
+			//if (rule.guard.isValid()) {
+			always_if->condition.push_back(parse_verilog::export_expression(rule.guard, mod));
+			//}
+
+			auto rule_body = make_shared<parse_verilog::block_statement>();
+			rule_body->valid = true;
+
+			for (const auto& assign : rule.assign) {
+				rule_body->sub.push_back(
+					make_shared<parse_verilog::assignment_statement>(
+						export_assign(mod, assign)));
+			}
+
+			always_if->body.push_back(*rule_body);
+		}
+
+		// For each _else rule, append it as an independent condition within always_if's terminal "else" body
+		if (!i->_else.empty()) {
+			auto else_body = make_shared<parse_verilog::block_statement>();
+			else_body->valid = true;
+
+			for (const auto& else_rule : i->_else) {
+				auto rule_if = make_shared<parse_verilog::if_statement>();
+				rule_if->valid = true;
+
+				//if (else_rule.guard.isValid()) {
+				rule_if->condition.push_back(parse_verilog::export_expression(else_rule.guard, mod));
+				//}
+
+				auto rule_body = make_shared<parse_verilog::block_statement>();
+				rule_body->valid = true;
+
+				for (const auto& assign : else_rule.assign) {
+					rule_body->sub.push_back(
+						make_shared<parse_verilog::assignment_statement>(
+							export_assign(mod, assign)));
+				}
+
+				rule_if->body.push_back(*rule_body);
+				else_body->sub.push_back(rule_if);
+			}
+
+			always_if->body.push_back(*else_body);
+		}
+
+		always_body->sub.push_back(always_if);
+		always->body = *always_body;
+		result.items.push_back(always);
 	}
-	
+
 	return result;
 }
 
