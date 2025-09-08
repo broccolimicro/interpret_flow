@@ -1,4 +1,4 @@
-#include "export.h"
+#include "export_verilog.h"
 
 #include <parse_verilog/if_statement.h>
 #include <parse_verilog/block_statement.h>
