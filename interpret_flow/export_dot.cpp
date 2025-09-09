@@ -3,7 +3,8 @@
 #include <algorithm>
 #include <sstream>
 
-//using namespace parse_dot;
+#include <interpret_arithmetic/export.h>
+
 
 namespace flow {
 
@@ -41,9 +42,13 @@ std::string escape_label(const std::string& input) {
 	return output;
 }
 
-// Helper function to format expression as HTML table with proper escaping
-std::string format_expression_table(const std::string& expr_str) {
-	std::istringstream iss(expr_str);
+
+std::string format_expression(const arithmetic::Expression &e, const flow::Func &f, bool as_html_table=false) {
+	if (!as_html_table) {
+		return arithmetic::export_expression(e, f).to_string();
+	}
+	
+	std::istringstream iss(e.to_string());
 	std::string line;
 	std::stringstream html;
 
@@ -63,6 +68,8 @@ std::string format_expression_table(const std::string& expr_str) {
 	html << "</table>>";
 
 	return html.str();
+
+
 	//// Escape only the special characters that would break the DOT format
 	//std::string result = html.str();
 	//std::string escaped_result;
@@ -211,9 +218,9 @@ parse_dot::graph export_func(const Func &f) {
 	}
 
 	// Process each branch (condition)
-	for (size_t i = 0; i < f.conds.size(); ++i) {
-		const auto& cond = f.conds[i];
-		std::string branch_name = "branch_" + std::to_string(i);
+	for (size_t cond_idx = 0; cond_idx < f.conds.size(); ++cond_idx) {
+		const auto& cond = f.conds[cond_idx];
+		std::string branch_name = "branch_" + std::to_string(cond_idx);
 		append_statement(g, "subgraph cluster_" + branch_name + " {");
 
 		// Add subgraph attributes
@@ -223,11 +230,9 @@ parse_dot::graph export_func(const Func &f) {
 
 		// Add branch head (predicate) as a raw node definition
 		std::string branch_head_name = branch_name + "_head";
-
-		std::string predicate_html = format_expression_table(cond.valid.to_string());
 		std::string branch_head_attrs = std::string("[shape=doubleoctagon style=filled")
-			+ " fillcolor=crimson fontcolor=white fontsize=20 label=" + predicate_html + "];";
-
+			+ " fillcolor=crimson fontcolor=white fontsize=20 label=\""
+			+ format_expression(cond.valid, f) + "\"];";
 		append_statement(g, branch_head_name + branch_head_attrs, 2);
 
 
@@ -265,12 +270,13 @@ parse_dot::graph export_func(const Func &f) {
 		//TODO: rank=same all mem & req exprs
 		std::string exprs_rank = "{rank=same;";
 		for (const auto& reg : cond.regs) {
+
 			// Add register expression as a raw node definition
 			std::string reg_expr_name = branch_name + "_" + std::to_string(reg.first) + "_mem_expr";
 			exprs_rank += reg_expr_name + "; ";
 			std::string reg_expr_attrs = std::string("[shape=note style=filled fillcolor=beige")
-				+ " fontname=Courier fontsize=16 label="
-				+ format_expression_table(reg.second.to_string()) + "];";
+				+ " fontname=Courier fontsize=16 label=\""
+				+ format_expression(reg.second, f) + "\"];";
 			append_statement(g, reg_expr_name + reg_expr_attrs, 2);
 
 			// Add register folder node as a raw node definition
@@ -300,13 +306,11 @@ parse_dot::graph export_func(const Func &f) {
 		// Add output channels (w/ "req[uest]" assignment expressions
 		std::string outs_rank = "{rank=same;";
 		for (const auto& out : cond.outs) {
-			// Format the output expression as a table
-			std::string out_expr_label = format_expression_table(out.second.to_string());
 
 			// Add request expression as a raw node definition
 			std::string out_expr_name = branch_name + "_" + std::to_string(out.first) + "_out_expr";
-			std::string out_expr_attrs = "[shape=note style=filled label="
-				+ out_expr_label + "fillcolor=palegreen fontsize=16];";
+			std::string out_expr_attrs = "[shape=note style=filled label=\""
+				+ format_expression(out.second, f) + "\" fillcolor=palegreen fontsize=16];";
 			append_statement(g, out_expr_name + out_expr_attrs, 2);
 			append_statement(g, branch_head_name + "->" + out_expr_name, 2);
 			exprs_rank += out_expr_name + "; ";
@@ -342,9 +346,9 @@ parse_dot::graph export_func(const Func &f) {
 	// Add rank=same for all branch align nodes as a raw statement
 	if (!f.conds.empty()) {
 		std::string rank_stmt = "{rank=same; ";
-		for (size_t i = 0; i < f.conds.size(); ++i) {
-			if (i > 0) rank_stmt += " ";
-			rank_stmt += "branch_" + std::to_string(i) + "_align;";
+		for (size_t cond_idx = 0; cond_idx < f.conds.size(); ++cond_idx) {
+			if (cond_idx > 0) rank_stmt += " ";
+			rank_stmt += "branch_" + std::to_string(cond_idx) + "_align;";
 		}
 		rank_stmt += "};";
 		append_statement(g, rank_stmt);
