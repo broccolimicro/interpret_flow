@@ -45,7 +45,7 @@ std::string escape_label(const std::string& input) {
 
 std::string format_expression(const arithmetic::Expression &e, const flow::Func &f, bool as_html_table=false) {
 	if (!as_html_table) {
-		return arithmetic::export_expression(e, f).to_string();
+		return "\"" + arithmetic::export_expression(e, f).to_string() + "\"";
 	}
 	
 	std::istringstream iss(e.to_string());
@@ -231,8 +231,8 @@ parse_dot::graph export_func(const Func &f) {
 		// Add branch head (predicate) as a raw node definition
 		std::string branch_head_name = branch_name + "_head";
 		std::string branch_head_attrs = std::string("[shape=doubleoctagon style=filled")
-			+ " fillcolor=crimson fontcolor=white fontsize=20 label=\""
-			+ format_expression(cond.valid, f) + "\"];";
+			+ " fillcolor=crimson fontcolor=white fontsize=20 label="
+			+ format_expression(cond.valid, f) + "];";
 		append_statement(g, branch_head_name + branch_head_attrs, 2);
 
 
@@ -275,8 +275,8 @@ parse_dot::graph export_func(const Func &f) {
 			std::string reg_expr_name = branch_name + "_" + std::to_string(reg.first) + "_mem_expr";
 			exprs_rank += reg_expr_name + "; ";
 			std::string reg_expr_attrs = std::string("[shape=note style=filled fillcolor=beige")
-				+ " fontname=Courier fontsize=16 label=\""
-				+ format_expression(reg.second, f) + "\"];";
+				+ " fontname=Courier fontsize=16 label="
+				+ format_expression(reg.second, f) + "];";
 			append_statement(g, reg_expr_name + reg_expr_attrs, 2);
 
 			// Add register folder node as a raw node definition
@@ -309,8 +309,8 @@ parse_dot::graph export_func(const Func &f) {
 
 			// Add request expression as a raw node definition
 			std::string out_expr_name = branch_name + "_" + std::to_string(out.first) + "_out_expr";
-			std::string out_expr_attrs = "[shape=note style=filled label=\""
-				+ format_expression(out.second, f) + "\" fillcolor=palegreen fontsize=16];";
+			std::string out_expr_attrs = "[shape=note style=filled label="
+				+ format_expression(out.second, f) + " fillcolor=palegreen fontsize=16];";
 			append_statement(g, out_expr_name + out_expr_attrs, 2);
 			append_statement(g, branch_head_name + "->" + out_expr_name, 2);
 			exprs_rank += out_expr_name + "; ";
