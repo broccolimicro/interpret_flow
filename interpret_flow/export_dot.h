@@ -9,6 +9,6 @@
 
 namespace flow {
 
-parse_dot::graph export_func(const Func &f);
+parse_dot::graph export_func(const Func &f, bool format_expressions_as_html_table=false);
 
 }
