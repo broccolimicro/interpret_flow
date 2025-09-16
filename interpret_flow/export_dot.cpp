@@ -306,6 +306,8 @@ parse_dot::graph export_func(const Func &f, bool format_expressions_as_html_tabl
 		// Add output channels (w/ "req[uest]" assignment expressions
 		std::string outs_rank = "{rank=same;";
 		for (const auto& out : cond.outs) {
+			size_t channel_width = f.nets[out.first].type.width;
+			std::string out_route_color = (channel_width < 2) ? "red" : "blue";
 
 			// Add request expression as a raw node definition
 			std::string out_expr_name = branch_name + "_" + std::to_string(out.first) + "_out_expr";
@@ -315,22 +317,22 @@ parse_dot::graph export_func(const Func &f, bool format_expressions_as_html_tabl
 			append_statement(g, branch_head_name + "->" + out_expr_name, 2);
 			exprs_rank += out_expr_name + "; ";
 
-			// Local-only duplicate output channel to show which branch uses which channels
+			// Local-only duplicate out channel to show which branch uses which channels
 			std::string out_net_name = f.netAt(out.first);
-			std::string output_channel_copy = branch_name + "_" + out_net_name;
-			outs_rank += output_channel_copy + "; ";
-			std::string output_channel_decl = output_channel_copy
+			std::string out_channel_copy = branch_name + "_" + out_net_name;
+			outs_rank += out_channel_copy + "; ";
+			std::string out_channel_decl = out_channel_copy
 				+ "[shape=cylinder label=\"" + out_net_name + "\"];";
-			append_statement(g, output_channel_decl, 2);
-			append_statement(g, out_expr_name + "->" + output_channel_copy, 2);
+			append_statement(g, out_channel_decl, 2);
 
-			// Connect local-only output channel duplicate to actual external channel
-			std::string internal_output_route = output_channel_copy + "->" + out_net_name;
+			std::string route_color_attr = "[color=" + out_route_color + "];";
+			append_statement(g, out_expr_name + "->" + out_channel_copy + route_color_attr, 2);
 
-			size_t channel_width = f.nets[out.first].type.width;
-			std::string output_route_color = (channel_width < 2) ? "red" : "blue";
-			internal_output_route += "[color=" + output_route_color + "];";
-			append_statement(g, internal_output_route, 2);
+			// Connect local-only out channel duplicate to actual external channel
+			std::string internal_out_route = out_channel_copy + "->" + out_net_name;
+
+			internal_out_route += route_color_attr;
+			append_statement(g, internal_out_route, 2);
 		}
 		append_statement(g, exprs_rank + "}", 2);
 		append_statement(g, outs_rank + "}", 2);
