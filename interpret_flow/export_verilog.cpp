@@ -10,6 +10,8 @@
 namespace flow {
 
 parse_verilog::assignment_statement export_assign(ucs::ConstNetlist nets, clocked::Assign assign) {
+	parse_verilog::setup_expressions();
+
 	parse_verilog::assignment_statement result;
 	result.valid = true;
 	result.name = ucs::Net(nets.netAt(assign.net));
@@ -19,6 +21,8 @@ parse_verilog::assignment_statement export_assign(ucs::ConstNetlist nets, clocke
 }
 
 parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Assign assign, bool force) {
+	parse_verilog::setup_expressions();
+
 	parse_verilog::continuous result;
 	result.valid = true;
 	result.force = force;
@@ -31,6 +35,8 @@ parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Ass
 }
 
 parse_verilog::declaration export_declaration(string type, ucs::Net name, int msb, int lsb, bool input, bool output) {
+	parse_verilog::setup_expressions();
+
 	parse_verilog::declaration result;
 	result.valid = true;
 	result.input = input;
@@ -45,6 +51,8 @@ parse_verilog::declaration export_declaration(string type, ucs::Net name, int ms
 }
 
 parse_verilog::module_def export_module(const clocked::Module &mod) {
+	parse_verilog::setup_expressions();
+
 	parse_verilog::module_def result;
 	result.valid = true;
 	result.name = mod.name;
@@ -101,12 +109,18 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 			}
 		}
 
+		static const auto posedgeOp = parse_verilog::expression::precedence.find(parse_expression::operation_set::UNARY, "posedge", "", "", "");
+
 		auto always = make_shared<parse_verilog::trigger>();
 		always->valid = true;
-		always->condition.valid = true;
-		always->condition.level = parse_verilog::expression::get_level("posedge");
-		always->condition.arguments.push_back(parse_verilog::export_expression(i->clk, mod));
-		always->condition.operations.push_back("posedge");
+		if (posedgeOp.level < 0 or posedgeOp.index < 0) {
+			internal("", "unable to find \"posedge\" operator", __FILE__, __LINE__);
+		} else {
+			always->condition.valid = true;
+			always->condition.level = posedgeOp.level;
+			always->condition.arguments.push_back(parse_verilog::export_expression(i->clk, mod));
+			always->condition.operators.push_back(posedgeOp.index);
+		}
 
 		// Create the main always block body
 		auto always_body = make_shared<parse_verilog::block_statement>();
