@@ -6,6 +6,7 @@
 #include <parse_verilog/trigger.h>
 
 #include <interpret_arithmetic/export_verilog.h>
+#include <interpret_arithmetic/export.h>
 
 namespace flow {
 
@@ -14,7 +15,7 @@ parse_verilog::assignment_statement export_assign(ucs::ConstNetlist nets, clocke
 
 	parse_verilog::assignment_statement result;
 	result.valid = true;
-	result.name = ucs::Net(nets.netAt(assign.net));
+	result.lvalue = arithmetic::export_net<parse_verilog::expression>(assign.net, nets);
 	result.blocking = assign.blocking;
 	result.expr = parse_verilog::export_expression(assign.expr, nets);
 	return result;
@@ -27,7 +28,7 @@ parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Ass
 	result.valid = true;
 	result.force = force;
 	if (assign.expr.isNull()) {
-		result.deassign = ucs::Net(nets.netAt(assign.net));
+		result.deassign = arithmetic::export_net<parse_verilog::expression>(assign.net, nets);
 	} else {
 		result.assign = export_assign(nets, assign);
 	}
