@@ -77,6 +77,10 @@ parse_verilog::block_statement export_block(ucs::ConstNetlist nets, const vector
 
 			if (not k->expr.isUndef() and not k->expr.isValid()) {
 				cond->condition.push_back(parse_verilog::export_expression(k->expr, nets));
+			} else if (k->sub.empty()) {
+				continue;
+			} else {
+				cond->condition.push_back(parse_verilog::expression());
 			}
 
 			cond->body.push_back(export_block(nets, k->sub));
