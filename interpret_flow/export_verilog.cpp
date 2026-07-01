@@ -108,6 +108,19 @@ parse_verilog::trigger export_trigger(ucs::ConstNetlist nets, const clocked::Tri
 	return always;
 }
 
+parse_verilog::module_instance export_instance(ucs::ConstNetlist nets, const clocked::Instance &inst) {
+	parse_verilog::module_instance result;
+	result.valid = true;
+	result.module_type = inst.type;
+	result.instance_name = inst.name;
+	for (const Expression &port : inst.ports) {
+		parse_verilog::port_connection connect;
+		connect.expr = parse_verilog::export_expression(port, nets);
+		result.connections.push_back(connect);
+	}
+	return result;
+}
+
 parse_verilog::module_def export_module(const clocked::Module &mod) {
 	parse_verilog::setup_expressions();
 
@@ -133,6 +146,10 @@ parse_verilog::module_def export_module(const clocked::Module &mod) {
 
 	for (auto i = mod.triggers.begin(); i != mod.triggers.end(); i++) {
 		result.items.push_back(shared_ptr<parse::syntax>(new parse_verilog::trigger(export_trigger(mod, *i))));
+	}
+	
+	for (auto i = mod.inst.begin(); i != mod.inst.end(); i++) {
+		result.items.push_back(shared_ptr<parse::syntax>(new parse_verilog::module_instance(export_instance(mod, *i))));
 	}
 
 	return result;
