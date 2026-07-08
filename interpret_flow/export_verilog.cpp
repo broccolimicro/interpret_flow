@@ -35,7 +35,7 @@ parse_verilog::continuous export_continuous(ucs::ConstNetlist nets, clocked::Sta
 	return result;
 }
 
-parse_verilog::declaration export_declaration(string type, ucs::Net name, int msb, int lsb, bool input, bool output) {
+parse_verilog::declaration export_declaration(string type, std::string name, int msb, int lsb, bool input, bool output) {
 	parse_verilog::setup_expressions();
 
 	parse_verilog::declaration result;
@@ -47,7 +47,7 @@ parse_verilog::declaration export_declaration(string type, ucs::Net name, int ms
 		result.lsb = parse_verilog::export_expression(arithmetic::Value::intOf(lsb));
 	}
 	result.type = type;
-	result.name = name.to_string();
+	result.name = name;
 	return result;
 }
 
