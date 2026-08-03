@@ -29,9 +29,9 @@ arithmetic::Expression ExpressionImporter::import_term(const parse_expression::e
 	} else if (type == "literal") {
 		std::string name = syntax.ptr->get<literal>().value;
 		return arithmetic::import_literal(name, symbols, tokens, autoDefine);
-	} else if (type == "type") {
-		std::string name = syntax.ptr->get<type_name>().value;
-		return arithmetic::Expression::typeOf(name);
+	} else if (type == "label") {
+		std::string name = syntax.ptr->get<label>().value;
+		return arithmetic::Expression::labelOf(name);
 	}
 	internal("", "unsupported literal type '" + type + "'", __FILE__, __LINE__);
 	return arithmetic::Expression::undef();
@@ -197,8 +197,10 @@ arithmetic::Expression ExpressionImporter::import_modifier(parse_expression::ope
 			error("", "typecast expects type and value", __FILE__, __LINE__);
 			return arithmetic::Expression();
 		}
+		// TODO(edward.bingham) this fails because we cannot opinionate the left
+		// hand side of the equation without first knowing the operator...
 		arithmetic::Value type = arithmetic::evaluateConstExpr(args[0], args[0].top);
-		if (type.type != arithmetic::Value::TYPE) {
+		if (type.type != arithmetic::Value::LABEL) {
 			error("", "typecast expects type and value", __FILE__, __LINE__);
 		}
 		return arithmetic::cast(type.sval, args[1]);

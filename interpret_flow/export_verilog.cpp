@@ -15,9 +15,7 @@
 namespace parse_verilog {
 
 string export_value(const arithmetic::Value &v) {
-	if (v.type == arithmetic::Value::TYPE) {
-		return v.sval;
-	} else if (v.type == arithmetic::Value::TERM) {
+	if (v.type == arithmetic::Value::LABEL) {
 		return v.sval;
 	} else if (v.isUnstable()) {
 		return "X";
@@ -96,6 +94,11 @@ const parse_expression::precedence_set &ExpressionExporter::precedence() const {
 }
 
 parse_expression::expression::argument ExpressionExporter::export_constant(arithmetic::Value value) const {
+	if (value.type == arithmetic::Value::LABEL) {
+		label result;
+		result.value = arithmetic::export_value(value);
+		return {2, std::shared_ptr<parse::syntax>(result.clone())};
+	}
 	parse::wrapper<number> result;
 	result.value = parse_verilog::export_value(value);
 	return {0, std::shared_ptr<parse::syntax>(result.clone())};
@@ -192,7 +195,8 @@ parse_expression::expression ExpressionExporter::export_boolean_xor(const vector
 }
 
 parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
+	auto result = ExpressionExporter(nets).export_expression(expr);
+	return result;
 }
 
 
