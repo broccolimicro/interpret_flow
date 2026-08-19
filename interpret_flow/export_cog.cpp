@@ -38,18 +38,18 @@ parse_expression::operation ExpressionExporter::export_operator(int func) const 
 	case OpType::TERNARY: return operation("", "?", ":", "");
 	case OpType::IDENTITY: return operation("+", "", "", "");
 	case OpType::NEGATION: return operation("-", "", "", "");
-	// INVERSE - converted to DIVIDE
+	// INVERSE - converted to INTDIV
 	// TODO(edward.bingham) we need type information here to determine if we are using arithmetic or logical shift
 	case OpType::SHIFT_LEFT: return operation("", "", "<<", "");
 	case OpType::SHIFT_RIGHT: return operation("", "", ">>", "");
 	case OpType::ADD: return operation("", "", "+", "");
 	case OpType::SUBTRACT: return operation("", "", "-", "");
 	case OpType::MULTIPLY: return operation("", "", "*", "");
-	case OpType::DIVIDE: return operation("", "", "/", "");
-	case OpType::MOD: return operation("", "", "%", "");
+	case OpType::INTDIV: return operation("", "", "/", "");
+	case OpType::INTMOD: return operation("", "", "%", "");
 	case OpType::CALL: return operation("", "(", ",", ")");
 	// MEMBER_CALL - converted to MEMBER and CALL
-	//case OpType::CAST: return operation("", "(", "", ")");
+	case OpType::CAST: return operation("(", ")", "", "");
 	case OpType::ARRAY: return operation("[", "", ",", "]");
 	case OpType::INDEX: return operation("", "[", ":", "]");
 	//case OpType::STRUCT: return operation("'{", "", "", "}");
