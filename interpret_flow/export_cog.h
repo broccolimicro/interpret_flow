@@ -57,6 +57,8 @@ parse_cog::composition export_outs(const std::vector<std::pair<int, arithmetic::
 parse_cog::composition export_branch(const flow::Condition &cond, ucs::ConstNetlist nets);
 parse_cog::control export_condition(const flow::Condition &cond, ucs::ConstNetlist nets);
 parse_cog::composition export_conditions(const std::vector<flow::Condition> &conds, ucs::ConstNetlist nets);
-parse_cog::control export_func(const flow::Func &func);
+parse_cog::control export_main(const flow::Func &func);
+parse_cog::assignment export_instance(const flow::Instance &inst, ucs::ConstNetlist nets);
+parse_cog::composition export_func(const flow::Func &func);
 
 }

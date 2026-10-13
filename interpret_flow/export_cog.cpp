@@ -253,12 +253,32 @@ parse_cog::composition export_conditions(const std::vector<flow::Condition> &con
 	return result;
 }
 
-parse_cog::control export_func(const flow::Func &func) {
+parse_cog::control export_main(const flow::Func &func) {
 	parse_cog::control result;
 	result.valid = true;
 	result.kind = "while";
 	result.guard = export_expression(arithmetic::Expression::boolOf(true), func);
 	result.action = export_conditions(func.conds, func);
+	return result;
+}
+
+parse_cog::assignment export_instance(const flow::Instance &inst, ucs::ConstNetlist nets) {
+	return export_assignment(
+		arithmetic::Action(
+			arithmetic::Expression::undef(),
+			arithmetic::call(inst.type, inst.ports)
+		), nets);
+}
+
+parse_cog::composition export_func(const flow::Func &func) {
+	parse_cog::composition result;
+	result.valid = true;
+	result.level = parse_cog::composition::PARALLEL;
+	result.branches.push_back(std::shared_ptr<parse::syntax>(export_main(func).clone()));
+	for (const auto &inst : func.inst) {
+		result.comp.push_back("and");
+		result.branches.push_back(std::shared_ptr<parse::syntax>(export_instance(inst, func).clone()));
+	}
 	return result;
 }
 
